@@ -3,7 +3,7 @@ import logging
 import io
 
 from instructions import *
-from translation import translate_api
+from mocks import try_to_mock_method
 from utils import LogHandler
 from dex import Dex
 
@@ -105,7 +105,7 @@ class VM:
 
                         self.memory.last_return = None
                         # we do translation here now
-                        translate_api(instruction_return.ret, instruction_return.parameters, self, method.v)
+                        try_to_mock_method(instruction_return.ret, instruction_return.parameters, self, method.v)
                     else:
                         # backup old PC before doing the invoke and switching the stack frame
                         old_pc = self.pc
