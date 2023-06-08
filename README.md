@@ -3,12 +3,15 @@ Katalina is like Unicorn but for Dalvik bytecode. It provides an environment tha
 
 **What works:**
 * most instructions
+* same-class method invocations
+* Static fields/method invocations
 * String APIs
 * Base64 APIs
 
 **What kinda works:**
 * Iterator APIs
 * Arrays APIs
+* cross-class non static method invocations and fields
 
 **What's broken:**
 * MultiDex
