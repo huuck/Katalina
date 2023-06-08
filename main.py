@@ -130,7 +130,7 @@ def call_entrypoints(vm: VM) -> None:
         call_methods_by_name(vm, entrypoint, [None], {"do_branching": False})
 
 def main():
-    vm_instance = VM("assets/xenomorph-3.dex")
+    vm_instance = VM("assets/OoOoO.dex")
     call_entrypoints(vm_instance)
 
     parser = argparse.ArgumentParser()
