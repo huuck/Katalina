@@ -80,7 +80,7 @@ class VM:
 
         current_instruction: Instruction = method.instructions[self.pc]
 
-        # not using isinstance because it's so freaking slow
+        # not using isInstance because it's so freaking slow
         while not 0x0e <= current_instruction.opcode <= 0x11 and current_instruction.opcode != 0x27:
             # While instruction isn't a return instructions
             log.debug(f"@{hex(current_instruction.address)}")
@@ -155,7 +155,7 @@ class VM:
             return ret
         elif (True):
             pass 
-            # put multidex code here
+            # TODO: put multidex code here
 
 
 def build_instruction(context: VM) -> Instruction:

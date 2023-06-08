@@ -108,12 +108,6 @@ def call_functions_in_package(vm: VM, package: str):
             log.warning(
                 f"Method {method.class_name}.{method.method_name}.{method.proto_id} had no metadata generated")
 
-        # try:
-        #    args_type = "".join([p.value for p in method.proto_id.params_types.list])
-        # except AttributeError as ex:
-        #    log.error(f"failed to parse argument types from {method.proto_id.params_types.list}")
-        #     args_type = ""
-
         try:
             with time_limit(20):
                 vm.call_method_by_id(index, [])
@@ -134,7 +128,6 @@ def call_entrypoints(vm: VM) -> None:
 
     for entrypoint in entrypoints_to_call:
         call_methods_by_name(vm, entrypoint, [None], {"do_branching": False})
-
 
 def main():
     vm_instance = VM("assets/xenomorph-3.dex")
