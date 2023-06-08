@@ -21,21 +21,19 @@ class VM:
 
         self.static_inits = {}
 
-        self.method_metadata = {}
+        self.method_data = {}
         self.call_stack = []
-        self.build_method_metadata()
+        self.build_method_id_to_method_data_dict()
 
         self.pc = 0
 
-        with open(dex_file_path, "rb") as fd: # Create an in-memory copy of the dex file to avoid constant FileIO
+        with open(dex_file_path, "rb") as fd:
             self.fd = io.BytesIO(fd.read())
 
         self.memory: Memory = Memory(self.dex, self.fd)
 
-    def build_method_metadata(self):
-        """
-        Iterate through the classes and their methods and populate the self.method_metadata lookup table
-        """
+    # build method_id to method data correlation
+    def build_method_id_to_method_data_dict(self):
         for class_def in self.dex.class_defs:
             if not class_def.class_data:
                 continue
@@ -47,7 +45,7 @@ class VM:
                 else:
                     current_idx += virtual_method.method_idx_diff.value
 
-                self.method_metadata[current_idx] = virtual_method
+                self.method_data[current_idx] = virtual_method
 
             current_idx = 0
             for direct_method in class_def.class_data.direct_methods:
@@ -56,7 +54,7 @@ class VM:
                 else:
                     current_idx += direct_method.method_idx_diff.value
 
-                self.method_metadata[current_idx] = direct_method
+                self.method_data[current_idx] = direct_method
 
     def print_call_stack(self):
         indent = ""
@@ -100,7 +98,7 @@ class VM:
                                                       self.dex.method_ids[instruction_return.ret].method_name) +
                               str(params))
 
-                    if not self.method_metadata.get(instruction_return.ret, None):
+                    if not self.method_data.get(instruction_return.ret, None):
                         log.debug("Method ID %s not found, trying translation" % instruction_return.ret)
 
                         self.memory.last_return = None
@@ -145,12 +143,12 @@ class VM:
             for index, method in enumerate(self.dex.method_ids):
                 if method.method_name == "<clinit>" and method.class_name == self.dex.method_ids[method_id].class_name:
                     log.debug("Calling static constructor: " + method.class_name + "->" + method.method_name)
-                    self.call_method_at_offset(self.method_metadata[index].code_off.value)
+                    self.call_method_at_offset(self.method_data[index].code_off.value)
                 if method.method_name == "<init>" and method.class_name == self.dex.method_ids[method_id].class_name:
                     log.debug("Calling constructor: " + method.class_name + "->" + method.method_name)
-                    self.call_method_at_offset(self.method_metadata[index].code_off.value)
+                    self.call_method_at_offset(self.method_data[index].code_off.value)
 
-        if method_offset := self.method_metadata[method_id].code_off.value:
+        if method_offset := self.method_data[method_id].code_off.value:
             self.call_stack.append(method_id)
             ret = self.call_method_at_offset(method_offset, method_args, execution_flags)
             self.call_stack.pop()

@@ -10,18 +10,16 @@ from utils import LogHandler
 import signal
 from contextlib import contextmanager
 
+import itertools
 
-class TimeoutException(Exception):
-    pass
-
-
-# logging.root.setLevel(logging.DEBUG)
 
 handler = LogHandler()
 log = logging.getLogger("Recaff")
 log.setLevel(logging.INFO)
 log.addHandler(handler)
 
+class TimeoutException(Exception):
+    pass
 
 @contextmanager
 def time_limit(seconds: int):
@@ -39,10 +37,10 @@ def time_limit(seconds: int):
 def call_methods_by_name(vm: VM, method_name: str, method_args: Optional[List],
                          execution_flags: Optional[dict]) -> None:
     for index, method in enumerate(vm.dex.method_ids):
-        if method.method_name == method_name and vm.method_metadata.get(index, None):
+        if method.method_name == method_name and vm.method_data.get(index, None):
             log.debug(method.class_name + "->" + method_name)
             try:
-                with time_limit(20):
+                with time_limit(5):
                     log.debug(f"Calling {method_name}")
                     vm.call_stack = []
                     vm.call_method_by_id(index, method_args, execution_flags)
@@ -56,14 +54,11 @@ def call_methods_by_name(vm: VM, method_name: str, method_args: Optional[List],
 
 
 def call_method_by_fqcn(vm: VM, full_name: str, method_args: Optional[list]) -> None:
-    """
-    Call a method of a class based on its fully-qualified class name (FQCN). i.E.'Lcom/njzbfugl/lzzhmzl/App;->$(III)'
-    """
     for index, method in enumerate(vm.dex.method_ids):
         if f"{method.class_name}->{method.method_name}" not in full_name:
             continue  # Fast fail
 
-        if not vm.method_metadata.get(index, None):
+        if not vm.method_data.get(index, None):
             log.warning(f"Did not generate metadata for {full_name}")
 
         try:
@@ -80,9 +75,6 @@ def call_method_by_fqcn(vm: VM, full_name: str, method_args: Optional[list]) -> 
 
 
 def get_methods_by_signature(vm: VM, signature: str, params: Optional[list]) -> None:
-    """
-    Returns the method object
-    """
     method_offsets = []
     method_names = []
 
@@ -94,7 +86,7 @@ def get_methods_by_signature(vm: VM, signature: str, params: Optional[list]) -> 
         m_signature = str(params_types) + "->" + ret_type
         if m_signature == signature:
             try:
-                method_offsets.append(vm.method_metadata[index].code_off.value)
+                method_offsets.append(vm.method_data[index].code_off.value)
                 method_names.append(method.class_name + "->" + method.method_name)
             except KeyError:
                 pass
@@ -109,13 +101,10 @@ def get_methods_by_signature(vm: VM, signature: str, params: Optional[list]) -> 
 
 
 def call_functions_in_package(vm: VM, package: str):
-    """
-    Execute all functions in a specific Java Namespace. i.E. 'com.MyApp.Strings.*'
-    """
     for index, method in enumerate(vm.dex.method_ids):
         if package not in method.class_name:
             continue
-        if not vm.method_metadata.get(index, None):
+        if not vm.method_data.get(index, None):
             log.warning(
                 f"Method {method.class_name}.{method.method_name}.{method.proto_id} had no metadata generated")
 
@@ -133,66 +122,22 @@ def call_functions_in_package(vm: VM, package: str):
 
 
 def call_entrypoints(vm: VM) -> None:
-    """
-    Executes all Entrypoints into an android application.  !!!  List is most likely incomplete.
-    TODO: At this point it might even make sense to call every function named `on[A-Z].*`
-    """
-    # Entrypoints for Activities
-    call_methods_by_name(vm, "onCreate", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onStart", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onRestart", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onResume", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onPause", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onStop", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onDestroy", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onRestoreInstanceState", [None], {"do_branching": False})
+    activities = ["onCreate", "onStart", "onRestart", "onResume", "onPause", "onStop", "onDestroy", "onRestoreInstanceState"]
+    services = ["onServiceConnected", "onStartCommand", "onBind", "onAccessibilityEvent", "onCreateInputMethod", "onGesture", "onInterrupt", "onSystemActionsChanged"]
+    receivers = ["onReceive"]
+    threads = ["returnResult", "onStartJob", "onStopJob"]
+    loading = ["attachBaseContext"]
+    ui = ["onActionItemClicked", "onCheckboxClicked", "onCheckedChanged", "onClick", "onCreateActionMode", "onCreateContextMenu", "onCreateDialog", "onCreateOptionsMenu", "onContextItemSelected", "onDestroyActionMode", "onItemCheckedStateChanged", "onLongClick", "onMenuItemClick", "onOptionsItemSelected", "onPrepareActionMode", "onRadioButtonClicked", "onTimeSet"]
+    network = ["loadUrl"]
 
-    # Entrypoints for Services
-    call_methods_by_name(vm, "onServiceConnected", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onStartCommand", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onBind", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onAccessibilityEvent", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCreateInputMethod", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onGesture", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onInterrupt", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onSystemActionsChanged", [None], {"do_branching": False})
+    entrypoints_to_call = itertools.chain(*[activities, services, receivers, threads, loading, ui, network])
 
-    # Entrypoints for Broadcast Receivers
-    call_methods_by_name(vm, "onReceive", [None], {"do_branching": False})
-
-    # Entrypoints for threads and abstractions
-    call_methods_by_name(vm, "returnResult", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onStartJob", [None], {"do_branching": False})  # JobService
-    call_methods_by_name(vm, "onStopJob", [None], {"do_branching": False})  # JobService
-
-    # Entrypoints for dynamic dex loading
-    call_methods_by_name(vm, "attachBaseContext", [None], {"do_branching": False})
-
-    # Entrypoints for UI events
-    call_methods_by_name(vm, "onActionItemClicked", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCheckboxClicked", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCheckedChanged", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onClick", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCreateActionMode", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCreateContextMenu", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCreateDialog", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onCreateOptionsMenu", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onContextItemSelected", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onDestroyActionMode", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onItemCheckedStateChanged", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onLongClick", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onMenuItemClick", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onOptionsItemSelected", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onPrepareActionMode", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onRadioButtonClicked", [None], {"do_branching": False})
-    call_methods_by_name(vm, "onTimeSet", [None], {"do_branching": False})
-    
-    # Entrypoints for network related stuff
-    call_methods_by_name(vm, "loadUrl", [None], {"do_branching": False})
+    for entrypoint in entrypoints_to_call:
+        call_methods_by_name(vm, entrypoint, [None], {"do_branching": False})
 
 
 def main():
-    vm_instance = VM("assets/stringfog.dex")
+    vm_instance = VM("assets/xenomorph-3.dex")
     call_entrypoints(vm_instance)
 
     parser = argparse.ArgumentParser()

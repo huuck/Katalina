@@ -9,14 +9,23 @@ log = logging.getLogger(__name__)
 log.addHandler(handler)
 log.setLevel(logging.INFO)
 
+# stores state data for in between calls
+state_data = {}
 
 def Landroid_util_Base64_decode(params: list, vm, v: list):
     # add missing padding because python has very strong opinions about this
-    v[params[0]] += [61] * (-len(v[params[0]]) % 4)
+    if type(v[params[0]]) is list:
+        v[params[0]] += [61] * (-len(v[params[0]]) % 4)
+    else:
+        v[params[0]] += '=' * (-len(v[params[0]]) % 4)
     # also sanitize the input by turning everything to bytes
     try:
-        if len(params) == 1:
-            vm.memory.last_return = list(b64decode(bytes(v[params[0]])))
+        if len(params) == 1 or v[params[1]] == 0:
+            try:
+                vm.memory.last_return = list(b64decode(bytes(v[params[0]])))
+            except:
+                # maybe switch this around?
+                vm.memory.last_return = list(b64decode(v[params[0]]))
         else:
             # check for URL safe base64 decode (that's how people usually use the flag)
             vm.memory.last_return = list(urlsafe_b64decode(bytes(v[params[0]])))
@@ -204,7 +213,28 @@ def Ljava_util_List_size(params: list, vm, v: list):
 
 
 def Ljavax_crypto_spec_SecretKeySpec_0init0(params: list, vm, v: list):
-    pass
+    state_data['aes_key'] = v[params[1]]
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+def Ljavax_crypto_Cipher_doFinal(params: list, vm, v:list):
+    # TODO: CLEANUP + CBC
+    key = bytearray(state_data['aes_key'])
+    cipher_text = bytearray(v[params[1]])
+    iv = b'\00'*16
+    # most common two modes are CBC and ECB try one and then the other
+    # won't bother with IVs for now
+    try:
+        cipher = AES.new(key, AES.MODE_ECB)
+        original_data = unpad(cipher.decrypt(cipher_text), AES.block_size)
+    # TODO: POKEMON!
+    except:
+        cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+        original_data = unpad(cipher.decrypt(cipher_text), AES.block_size)
+
+    log.info(f"String decrypted: {original_data.decode('utf-8')} with key {key.decode('utf-8')}")
+    vm.memory.last_return = original_data
+
 
 
 def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
@@ -218,7 +248,10 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
     fp = globals().get(fqcn, None)
 
     if fp:
-        fp(params, vm, v)
+        try:
+            fp(params, vm, v)
+        except Exception as ex:
+            log.debug("Could not execute mock for %s->%s(%s): %s" % (class_name, method_name, [str(v[param])[0:8] for param in params], ex))
         return False
     elif class_name == "Landroid/view/Display;":
         vm.memory.last_return = 0
@@ -230,5 +263,7 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
         if "String" in method_name and "get" in method_name and len(method_name) > 9:
             vm.memory.last_return = "None"
             return False
+        if "Array" in method_name and "get" in method_name:
+            vm.memory.last_return = []
 
     return True
