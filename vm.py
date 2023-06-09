@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import logging
 import io
 
 from instructions import *
@@ -86,7 +85,6 @@ class VM:
             log.debug(f"@{hex(current_instruction.address)}")
             current_instruction.print_instruction()
 
-            # if self.do_branching or type(current_instruction) not in [Goto, If, IfZ]:
             # 0x27: raise, 0x28-0x2a: goto, 0x2b-0x31: switch-case jump, 0x32-0x37: Jmp-if, 0x38-0x3d, Jmp-ifZ
             if method.do_branching or not 0x28 <= current_instruction.opcode <= 0x3d:
                 instruction_return = current_instruction.execute(self.memory, method.v)

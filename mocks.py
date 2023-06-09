@@ -235,8 +235,10 @@ def Ljavax_crypto_Cipher_doFinal(params: list, vm, v:list):
     log.info(f"String decrypted: {original_data.decode('utf-8')} with key {key.decode('utf-8')}")
     vm.memory.last_return = original_data
 
+
 def Ljava_lang_System_arraycopy(params: list, vm, v:list):
     v[params[2]][v[params[3]]:v[params[1]]+v[params[4]]] = v[params[0]][v[params[1]]:v[params[1]]+v[params[4]]]
+
 
 def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
     class_name: str = vm.dex.method_ids[method_idx].class_name

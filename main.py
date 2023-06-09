@@ -14,7 +14,7 @@ import itertools
 
 
 handler = LogHandler()
-log = logging.getLogger("Recaff")
+log = logging.getLogger("main")
 log.setLevel(logging.INFO)
 log.addHandler(handler)
 
@@ -130,19 +130,26 @@ def call_entrypoints(vm: VM) -> None:
         call_methods_by_name(vm, entrypoint, [None], {"do_branching": False})
 
 def main():
-    vm_instance = VM("assets/OoOoO.dex")
-    call_entrypoints(vm_instance)
-
+    # vm_instance = VM("assets/draw.dex")
+    # call_entrypoints(vm_instance)
+    # call_method_by_fqcn(vm_instance, "Ln/a/n/a;->a", [[74, -54, 109, -126, 90, -64, 118, -60, 112, -54], [25, -81]])
+    # call_methods_by_name(vm_instance, "name", [None], {"do_branching": False})
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v", "--verbose", help="Enable verbose logging", action="store_true"
     )
     parser.add_argument(
-        "-e", "--entrypoints", help="Execute Android entry points", action="store_true"
+        "-xe", "--entrypoints", help="Execute Android entry points", action="store_true"
     )
+
+    parser.add_argument(
+        "-xm", "--match", help="Execute function that matches specified name",
+        nargs=1
+    )
+
     parser.add_argument(
         "-x", "--execute",
-        help="Execute the given function with parameters. Example:\
+        help="Execute the given function with parameters specified as a fully qualified function name. Example:\
         python3 main.py classes.dex -x 'Lcom/njzbfugl/lzzhmzl/App;->$(III)' '67,84,1391'",
         nargs=2,
     )
@@ -166,6 +173,9 @@ def main():
         call_method_by_fqcn(vm_instance, method_name, parameters)
     if args.entrypoints:
         call_entrypoints(vm_instance)
+    if args.match:
+        match_string = args.match[0]
+        call_methods_by_name(vm_instance, match_string, [None], {"do_branching": False})
 
 
 if __name__ == '__main__':
