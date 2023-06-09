@@ -14,7 +14,7 @@ log.addHandler(handler)
 log.setLevel(logging.INFO)
 
 class VM:
-    def __init__(self, dex_file_path):
+    def __init__(self, dex_file_path, deny_list=[]):
         self.dex_file_path = dex_file_path
         self.dex = Dex.from_file(dex_file_path)
 
@@ -30,6 +30,7 @@ class VM:
             self.fd = io.BytesIO(fd.read())
 
         self.memory: Memory = Memory(self.dex, self.fd)
+        self.method_denylist = deny_list
 
     # build method_id to method data correlation
     def build_method_id_to_method_data_dict(self):
@@ -90,11 +91,11 @@ class VM:
                 instruction_return = current_instruction.execute(self.memory, method.v)
 
                 if instruction_return.is_external_call:
+                    fqn = self.dex.method_ids[instruction_return.ret].class_name + "->" + \
+                          self.dex.method_ids[instruction_return.ret].method_name
                     params = [method.v[i] for i in instruction_return.parameters]
                     self.pc = super(type(current_instruction), current_instruction).execute(self.memory, method.v).ret
-                    log.debug("Calling method: %s" % (self.dex.method_ids[instruction_return.ret].class_name + "->" +
-                                                      self.dex.method_ids[instruction_return.ret].method_name) +
-                              str(params))
+                    log.debug("Calling method: %s" % (fqn + str(params)))
 
                     if not self.method_data.get(instruction_return.ret, None):
                         log.debug("Method ID %s not found, trying translation" % instruction_return.ret)
@@ -106,7 +107,11 @@ class VM:
                         # backup old PC before doing the invoke and switching the stack frame
                         old_pc = self.pc
                         if len(self.call_stack) < 16:
-                            self.memory.last_return = self.call_method_by_id(instruction_return.ret, params)
+                            if not any([x in fqn for x in self.method_denylist]):
+                                self.memory.last_return = self.call_method_by_id(instruction_return.ret, params)
+                            else:
+                                self.memory.last_return = None
+                                log.error("Method in denylist, skipping " % (fqn))
                         else:
                             self.memory.last_return = None
                             log.error("Call stack size exceeded for %s" % (self.dex.method_ids[instruction_return.ret].class_name + "->" +

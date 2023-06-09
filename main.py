@@ -153,6 +153,14 @@ def main():
         python3 main.py classes.dex -x 'Lcom/njzbfugl/lzzhmzl/App;->$(III)' '67,84,1391'",
         nargs=2,
     )
+
+    parser.add_argument(
+        "-dl", "--denylist", help="Skips the execution of methods whose fully qualified name contains words from the specified list. Example: \
+         python3 main.py --execute --denylist androidx,unity",
+        nargs=1,
+        required=False
+    )
+
     parser.add_argument(
         "-j", "--json", help="Output generated Strings as JSON object", action="store_true"
     )
@@ -163,8 +171,13 @@ def main():
         parser.print_help()
         return 0
 
+    deny_list = []
+    if args.denylist:
+        deny_list = args.denylist[0].split(',')
+
     dex_file_path = args.DEX_FILE
-    vm_instance = VM(dex_file_path)
+    vm_instance = VM(dex_file_path, deny_list)
+
     if args.execute:
         method_name = args.execute[0]
         parameter_string = args.execute[1]
