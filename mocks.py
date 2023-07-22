@@ -12,6 +12,10 @@ log.setLevel(logging.INFO)
 # stores state data for in between calls
 state_data = {}
 
+def dump_string(string: str, vm):
+    log.info(f"{vm.get_fqfn(vm.call_stack[0])} -> {string}")
+
+
 def Landroid_util_Base64_decode(params: list, vm, v: list):
     # add missing padding because python has very strong opinions about this
     if type(v[params[0]]) is list:
@@ -69,7 +73,7 @@ def Ljava_lang_String_0init0(params: list, vm, v: list):
                 ret.append(b)
             v[params[0]] = bytearray(ret).decode("utf-8", "ignore")
 
-        log.info(f"String created: {v[params[0]]}")
+        dump_string(f"{v[params[0]]}", vm);
 
 
 def Ljava_lang_String_charAt(params: list, vm, v: list):
@@ -140,7 +144,8 @@ def Ljava_lang_StringBuilder_0init0(params: list, vm, v: list):
             v[params[0]] = v[params[1]]
     else:
         v[params[0]] = ''
-    log.info(f"String created: {v[params[0]]}")
+    dump_string(f"{v[params[0]]}", vm)
+    # log.info(f"String created: {v[params[0]]}")
 
 
 def Ljava_lang_StringBuilder_append(params: list, vm, v: list):
@@ -163,7 +168,8 @@ def Ljava_lang_StringBuilder_length(params: list, vm, v: list):
 
 def Ljava_lang_StringBuilder_toString(params: list, vm, v: list):
     vm.memory.last_return = v[params[0]]
-    log.info(f"String created: {v[params[0]]}")
+    dump_string(f"{v[params[0]]}", vm)
+    # log.info(f"String created: {v[params[0]]}")
 
 
 def Ljava_lang_StringBuffer_0init0(params: list, vm, v: list):
@@ -171,7 +177,8 @@ def Ljava_lang_StringBuffer_0init0(params: list, vm, v: list):
         v[params[0]] = ''.join(chr(i) for i in v[params[1]])
     if isinstance(v[params[1]], str):
         v[params[0]] = v[params[1]]
-    log.info(f"String created: {v[params[0]]}")
+    dump_string(f"{v[params[0]]}", vm);
+    # log.info(f"String created: {v[params[0]]}")
 
 
 def Ljava_lang_StringBuffer_toString(params: list, vm, v: list):

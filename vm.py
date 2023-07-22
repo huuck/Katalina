@@ -60,8 +60,10 @@ class VM:
         indent = ""
         for m_id in self.call_stack:
             indent += " "
-            print(f"{indent}> {self.dex.method_ids[m_id].class_name}.{self.dex.method_ids[m_id].method_name}({self.dex.method_ids[m_id].proto_desc})")
+            print(f"{indent}> {self.get_fqfn(m_id)})")
 
+    def get_fqfn(self, m_id):
+            return f"{self.dex.method_ids[m_id].class_name}.{self.dex.method_ids[m_id].method_name}({self.dex.method_ids[m_id].proto_desc})"
     def get_method_at_offset(self, method_offset: int, execution_flags: Optional[dict]):
         self.fd.seek(method_offset)
         func = Method(self.fd, self.dex, self, execution_flags)
@@ -111,7 +113,7 @@ class VM:
                                 self.memory.last_return = self.call_method_by_id(instruction_return.ret, params)
                             else:
                                 self.memory.last_return = None
-                                log.error("Method in denylist, skipping " % (fqn))
+                                log.info("Method in denylist, skipping %s" % (fqn))
                         else:
                             self.memory.last_return = None
                             log.error("Call stack size exceeded for %s" % (self.dex.method_ids[instruction_return.ret].class_name + "->" +

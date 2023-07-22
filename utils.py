@@ -4,7 +4,7 @@ import zlib
 class LogHandler(logging.StreamHandler):
     def __init__(self):
         super().__init__()
-        self.setFormatter(logging.Formatter('%(levelname)-7s %(name)-8s %(message)s'))
+        self.setFormatter(logging.Formatter('%(levelname)-8s %(message)s'))
 
     def emit(self, record: logging.LogRecord):
         color = zlib.adler32(record.name.encode()) % 7 + 31
