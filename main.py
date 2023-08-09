@@ -34,21 +34,20 @@ def time_limit(seconds: int):
         signal.alarm(0)
 
 
-def call_methods_by_name(vm: VM, method_name: str, method_args: Optional[List],
+def call_methods_by_name(vm: VM, name: str, method_args: Optional[List],
                          execution_flags: Optional[dict]) -> None:
     for index, method in enumerate(vm.dex.method_ids):
-        if method.method_name == method_name and vm.method_data.get(index, None):
-            log.debug(method.class_name + "->" + method_name)
+        if name in (method.class_name + method.method_name) and vm.method_data.get(index, None):
             try:
                 with time_limit(5):
-                    log.debug(f"Calling {method_name}")
+                    log.info(f"Calling {method.class_name}->{method.method_name}")
                     vm.call_stack = []
                     vm.call_method_by_id(index, method_args, execution_flags)
             except TimeoutException:
                 vm.print_call_stack()
-                log.warning(f"Method {method_name} timed out...")
+                log.warning(f"Method {method.class_name}->{method.method_name} timed out...")
             except Exception as ex:
-                log.error(f"Error running {method_name}: {ex}")
+                log.error(f"Error running {method.class_name}->{method.method_name}: {ex}")
                 vm.print_call_stack()
 
 
@@ -130,10 +129,6 @@ def call_entrypoints(vm: VM) -> None:
         call_methods_by_name(vm, entrypoint, [None], {"do_branching": False})
 
 def main():
-    # vm_instance = VM("assets/draw.dex")
-    # call_entrypoints(vm_instance)
-    # call_method_by_fqcn(vm_instance, "Ln/a/n/a;->a", [[74, -54, 109, -126, 90, -64, 118, -60, 112, -54], [25, -81]])
-    # call_methods_by_name(vm_instance, "name", [None], {"do_branching": False})
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v", "--verbose", help="Enable verbose logging", action="store_true"

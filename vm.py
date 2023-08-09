@@ -266,13 +266,13 @@ class Method:
             self.v.append(0)
 
         self.method_entrypoint_address = fd.tell()
-        log.debug("Creating new FunctionVMContext")
-        log.debug("\tREGISTERS\t\t %s" % self.registers_size)
-        log.debug("\tPARAMETERS\t\t %s" % self.ins_size)
-        log.debug("\tRETURNS\t\t\t %s" % self.outs_size)
-        log.debug("\tTRIES\t\t\t %s" % self.tries_size)
-        log.debug("\tDEBUG OFFSET\t\t %s" % self.debug_offset)
-        log.debug("\tINSTRUCTIONS\t\t %s" % self.instr_size)
+        log.debug("Loading method @%s" % hex(vm.fd.tell()))
+        log.debug("\tRegisters\t\t %s" % self.registers_size)
+        log.debug("\tParameters\t\t %s" % self.ins_size)
+        log.debug("\tReturns\t\t\t %s" % self.outs_size)
+        log.debug("\tTries\t\t\t %s" % self.tries_size)
+        log.debug("\tDebug offset\t\t %s" % self.debug_offset)
+        log.debug("\tInstruction count\t\t %s" % self.instr_size)
 
         self.instructions: Dict[int, Instruction] = {}
 

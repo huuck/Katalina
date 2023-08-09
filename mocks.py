@@ -40,10 +40,15 @@ def Landroid_util_Base64_decode(params: list, vm, v: list):
 
 def Landroid_view_TextUtils_isEmpty(params: list, vm, v: list):
     try:
-        vm.memory.last_return = v[params[0]] is None or len(v[params[0]]) > 0
+        vm.memory.last_return = v[params[0]] is None or len(v[params[0]]) == 0
     except Exception:
         vm.memory.last_return = 0
 
+def Landroid_text_TextUtils_isEmpty(params: list, vm, v: list):
+    try:
+        vm.memory.last_return = v[params[0]] is None or len(v[params[0]]) == 0
+    except Exception:
+        vm.memory.last_return = 0
 
 def Ljava_io_ByteArrayOutputStream_0init0(params: list, vm, v: list):
     v[params[0]] = []
@@ -121,7 +126,13 @@ def Ljava_lang_String_indexOf(params: list, vm, v: list):
 
 
 def Ljava_lang_String_valueOf(params: list, vm, v: list):
-    vm.memory.last_return = chr(v[params[0]])
+    try:
+        vm.memory.last_return = chr(v[params[0]])
+    except:
+        vm.memory.last_return = bytes(bytearray(v[params[0]])).decode('ascii')
+        dump_string(vm.memory.last_return, vm)
+
+
 
 
 def Ljava_lang_String_toLowerCase(params: list, vm, v: list):
@@ -135,6 +146,8 @@ def Ljava_lang_String_getBytes(params: list, vm, v: list):
     except:
         vm.memory.last_return = list(v[params[0]])
 
+def Ljava_lang_String_toCharArray(params: list, vm, v:list):
+    vm.memory.last_return = list(v[params[0]])
 
 def Ljava_lang_StringBuilder_0init0(params: list, vm, v: list):
     if len(params) > 1:
@@ -145,7 +158,6 @@ def Ljava_lang_StringBuilder_0init0(params: list, vm, v: list):
     else:
         v[params[0]] = ''
     dump_string(f"{v[params[0]]}", vm)
-    # log.info(f"String created: {v[params[0]]}")
 
 
 def Ljava_lang_StringBuilder_append(params: list, vm, v: list):
@@ -178,8 +190,6 @@ def Ljava_lang_StringBuffer_0init0(params: list, vm, v: list):
     if isinstance(v[params[1]], str):
         v[params[0]] = v[params[1]]
     dump_string(f"{v[params[0]]}", vm);
-    # log.info(f"String created: {v[params[0]]}")
-
 
 def Ljava_lang_StringBuffer_toString(params: list, vm, v: list):
     vm.memory.last_return = v[params[0]]
@@ -239,7 +249,7 @@ def Ljavax_crypto_Cipher_doFinal(params: list, vm, v:list):
         cipher = AES.new(key, AES.MODE_CBC, iv=iv)
         original_data = unpad(cipher.decrypt(cipher_text), AES.block_size)
 
-    log.info(f"String decrypted: {original_data.decode('utf-8')} with key {key.decode('utf-8')}")
+    dump_string(f"String decrypted: {original_data.decode('utf-8')} with key {key.decode('utf-8')}", vm)
     vm.memory.last_return = original_data
 
 
@@ -261,7 +271,7 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
         try:
             fp(params, vm, v)
         except Exception as ex:
-            log.debug("Could not execute mock for %s->%s(%s): %s" % (class_name, method_name, [str(v[param])[0:8] for param in params], ex))
+            log.error("Could not execute mock for %s->%s(%s): %s" % (class_name, method_name, [str(v[param])[0:8] for param in params], ex))
         return False
     elif class_name == "Landroid/view/Display;":
         vm.memory.last_return = 0
