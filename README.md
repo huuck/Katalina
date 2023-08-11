@@ -5,7 +5,7 @@ Katalina is like Unicorn but for Dalvik bytecode. It provides an environment tha
 
 ```python3 main.py -xe classes.dex```
 
-**How it looks like?**
+**How it looks like:**
 
 <img width="781" alt="image" src="https://github.com/huuck/Katalina/assets/3353285/5eb16e8e-44c4-4e3f-9cc4-2ed6a7b847ac">
 
