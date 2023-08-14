@@ -1,7 +1,11 @@
 # Katalina
 Katalina is like Unicorn but for Dalvik bytecode. It provides an environment that can execute Android bytecode one instruction at a time.
 
-**How to run?**
+**How to install:**
+
+```pip install -r requirements.txt```
+
+**How to run:**
 
 ```python3 main.py -xe classes.dex```
 
@@ -26,3 +30,4 @@ Katalina is like Unicorn but for Dalvik bytecode. It provides an environment tha
 **What's broken:**
 * MultiDex
 * I/O
+* Windows support might be broken because of the timeout mechanism, please use WSL to run it
