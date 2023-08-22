@@ -1,4 +1,6 @@
-# This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+# This is a generated file based on https://formats.kaitai.io/dex/ but with minor tweaks for string processing.
+# Unfortunately the original cannot parse KSY cannot parse the UTF16 strings in the "fake" UTF8 format we need which makes string processing way easier
+# See line 460
 from typing import List
 
 from pkg_resources import parse_version
@@ -459,7 +461,6 @@ class Dex(KaitaiStruct):
                 while byte != b'\x00':
                     self.raw_data += byte
                     byte = self._io.read_bytes(1)
-                # self.raw_data = self._io.read_bytes(self.utf16_size.value)
                 self.data = self.raw_data.decode(u"utf-8", "replace")
 
         @property
