@@ -5,7 +5,7 @@ from types import FrameType
 
 from vm import VM
 from typing import Optional, List
-from utils import LogHandler
+from utils import LogHandler, JsonFormatter
 
 import signal
 from contextlib import contextmanager
@@ -172,6 +172,18 @@ def main():
 
     dex_file_path = args.DEX_FILE
     vm_instance = VM(dex_file_path, deny_list)
+
+    if args.json:
+        root_logger = logging.getLogger()
+        formatter = JsonFormatter()
+        # change root logger
+        for handler in root_logger.handlers:
+            handler.setFormatter(formatter)
+        # change the rest of the loggers
+        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+        for logger in loggers:
+            for handler in logger.handlers:
+                handler.setFormatter(formatter)
 
     if args.execute:
         method_name = args.execute[0]

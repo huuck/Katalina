@@ -1,6 +1,6 @@
 import logging
 
-from utils import LogHandler
+from utils import *
 from base64 import b64decode, urlsafe_b64decode
 from helpers import string_hash_code
 
@@ -13,7 +13,7 @@ log.setLevel(logging.INFO)
 state_data = {}
 
 def dump_string(string: str, vm):
-    log.info(f"{vm.get_fqfn(vm.call_stack[0])} -> {string}")
+    log.info(string, extra={"type": LOG_TYPE_STRING, "fqfn": vm.get_fqfn(vm.call_stack[0])})
 
 
 def Landroid_util_Base64_decode(params: list, vm, v: list):

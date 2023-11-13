@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import io
+import logging
 
 from instructions import *
 from mocks import try_to_mock_method
@@ -57,10 +58,11 @@ class VM:
                 self.method_data[current_idx] = direct_method
 
     def print_call_stack(self):
-        indent = ""
-        for m_id in self.call_stack:
-            indent += " "
-            print(f"{indent}> {self.get_fqfn(m_id)})")
+        if log.level <= logging.DEBUG:
+            indent = ""
+            for m_id in self.call_stack:
+                indent += " "
+                print(f"{indent}> {self.get_fqfn(m_id)})")
 
     def get_fqfn(self, m_id):
             return f"{self.dex.method_ids[m_id].class_name}.{self.dex.method_ids[m_id].method_name}({self.dex.method_ids[m_id].proto_desc})"
