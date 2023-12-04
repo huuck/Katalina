@@ -6,7 +6,9 @@ from helpers import *
 handler = LogHandler()
 log = logging.getLogger(__name__)
 log.addHandler(handler)
-log.setLevel(logging.INFO)
+# log.setLevel(logging.INFO)
+log.setLevel(logging.ERROR)
+
 
 
 class InstructionReturn:
@@ -454,7 +456,6 @@ class Array(Instruction):
 
                 for i in range(element_num):
                     v[self.vA][i] = b2i(memory.fd.read(element_width))
-
                 # restore PC, skipping over the read instruction data
                 memory.fd.seek(self.address + 6)
         return super().execute(memory, v)
@@ -1090,6 +1091,7 @@ class BinOp(Instruction):
 
     def print_instruction(self):
         log.debug("%s-%s v%s v%s v%s" % (self.prefix, self.suffix, self.vA, self.vB, self.vC))
+
 
     def execute(self, memory, v):
         # gonna do a hack for now and not process the operand type (and only do some caps on the output register)

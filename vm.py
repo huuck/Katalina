@@ -13,6 +13,9 @@ handler = LogHandler()
 log = logging.getLogger(__name__)
 log.addHandler(handler)
 log.setLevel(logging.INFO)
+# log.setLevel(logging.DEBUG)
+# log.setLevel(logging.ERROR)
+
 
 class VM:
     def __init__(self, dex_file_path, deny_list=[]):
@@ -88,6 +91,7 @@ class VM:
         while not 0x0e <= current_instruction.opcode <= 0x11 and current_instruction.opcode != 0x27:
             # While instruction isn't a return instructions
             log.debug(f"@{hex(current_instruction.address)}")
+
             current_instruction.print_instruction()
 
             # 0x27: raise, 0x28-0x2a: goto, 0x2b-0x31: switch-case jump, 0x32-0x37: Jmp-if, 0x38-0x3d, Jmp-ifZ
@@ -100,7 +104,7 @@ class VM:
                     params = [method.v[i] for i in instruction_return.parameters]
                     self.pc = super(type(current_instruction), current_instruction).execute(self.memory, method.v).ret
                     log.debug("Calling method: %s" % (fqn + str(params)))
-
+                    # log.info("(0x%x) Calling method: %s" % (self.pc, fqn + str(params)))
                     if not self.method_data.get(instruction_return.ret, None):
                         log.debug("Method ID %s not found, trying translation" % instruction_return.ret)
 
@@ -144,7 +148,6 @@ class VM:
     def call_method_by_id(self, method_id: int, method_args: Optional[List], execution_flags: Optional[dict] = {}):
         # call the static and instance constructor for the class in which the method we called resides
         # TODO: rewrite this so it won't look like a hack
-
         if not self.static_inits.get(self.dex.method_ids[method_id].class_name, False):
             self.static_inits[self.dex.method_ids[method_id].class_name] = True
             for index, method in enumerate(self.dex.method_ids):

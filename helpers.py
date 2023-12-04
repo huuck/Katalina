@@ -29,6 +29,11 @@ def logical_rshift(signed_integer, places, num_bits=32):
     unsigned_integer = signed_integer % (1 << num_bits)
     return unsigned_integer >> places
 
+def logical_lshift(signed_integer, places, num_bits=32):
+    unsigned_integer = signed_integer % (1 << num_bits)
+    return unsigned_integer << places
+
+
 
 def alu_op(op: int, operand: int, b: int, c: int):
     # TODO: disable this pokemon and start fixing bugs
@@ -62,20 +67,33 @@ def alu_op(op: int, operand: int, b: int, c: int):
             a = b | c
         case 0x7:
             a = b ^ c
-        case 0x8:
-            a = b << c  # should keep sign
-        case 0x9:
-            a = b >> c  # should keep sign
-        case 0xa:
+        case 0x8: # <<
             c = c % 64
+            BITBACK = 0xffffffffffffffff
             if operand != 0x1:
                 c = c % 32
+                BITBACK = 0xffffffff
+            a = b << c # should keep sign
+            a &= BITBACK
+        case 0x9: # >>
+            c = c % 64
+            BITBACK = 0xffffffffffffffff
+            if operand != 0x1:
+                c = c % 32
+                BITBACK = 0xffffffff
+            a = b >> c  # should keep sign
+            a &= BITBACK
+        case 0xa: # >>>
+            c = c % 64
+            BITBACK = 0xffffffffffffffff
+            if operand != 0x1:
+                c = c % 32
+                BITBACK = 0xffffffff
             if operand == 0x0:
                 a = logical_rshift(b, c)
             else:
                 a = logical_rshift(b, c, 64)
-            # a = b >> c  # should not keep sign
-
+            a &= BITBACK
     match operand:
         case 0x0:
             a = int(a)
@@ -95,11 +113,7 @@ def alu_op(op: int, operand: int, b: int, c: int):
 
 # taken from https://www.w3schools.com/java/ref_string_hashcode.asp
 def string_hash_code(string: str):
-    n = len(string)
-    hash_code = 0
-    i = 1
+    h = 0
     for c in string:
-        hash_code += (ord(c) * 31 ** (n - i))
-        i += 1
-
-    return hash_code
+        h = int((((31 * h + ord(c)) ^ 0x80000000) & 0xFFFFFFFF) - 0x80000000)
+    return h
