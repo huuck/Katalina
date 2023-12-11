@@ -8,8 +8,6 @@ handler = LogHandler()
 log = logging.getLogger(__name__)
 log.addHandler(handler)
 log.setLevel(logging.INFO)
-# log.setLevel(logging.ERROR)
-
 
 # stores state data for in between calls
 state_data = {}
@@ -343,7 +341,11 @@ def Ljava_lang_Thread_getStackTrace(params: list, vm, v:list):
     vm.memory.last_return = st
 
 def Ljava_lang_reflect_Method_invoke(params: list, vm, v:list):
-    t_class_name = v[params[0]][0].replace('.', '/')
+    try:
+        t_class_name = v[params[0]][0].replace('.', '/')
+    except:
+        t_class_name = "None"
+        log.error("Error solving reflection! Register state: " + str(v))
     t_method_name = v[params[0]][1]
     full_name = f"L{t_class_name};->{t_method_name}"
     for index, method in enumerate(vm.dex.method_ids):
@@ -352,14 +354,14 @@ def Ljava_lang_reflect_Method_invoke(params: list, vm, v:list):
 
         class_name: str = vm.dex.method_ids[index].class_name
         method_name: str = vm.dex.method_ids[index].method_name
-        # print(f"\t{t_class_name}, {t_method_name}")
 
         log.debug("Invoke Translating method: %s->%s with %s" % (
             class_name, method_name, [str(v[param]) for param in params]))
 
         fqcn = class_name.replace('/', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
+
         fp = globals().get(fqcn, None)
-        
+
         if fp:
             try:
                 fp(params[1:], vm, v)
@@ -381,14 +383,16 @@ def Ljava_lang_reflect_Method_invoke(params: list, vm, v:list):
 
     class_name = v[params[0]][0]
     method_name = v[params[0]][1]
-    fqcn = "L"+class_name.replace('.', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
-    
+    try:
+        fqcn = "L"+class_name.replace('.', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
+    except:
+        fqcn = "None"
+        log.error("Error solving reflection! Register state:" + str(v))
     fp = globals().get(fqcn, None)
     if fp:
         fp(params[1:], vm, v)
     else:
-        print(f"NOT FOUND {full_name} ?????????????")
+        log.debug(f"Reflected method not found in mocks {full_name}")
 
 def Ljava_lang_StackTraceElement_getMethodName(params: list, vm, v:list):
     vm.memory.last_return = v[params[0]]["method_name"]
-    # print(vm.memory.last_return)
