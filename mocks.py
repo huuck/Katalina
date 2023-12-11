@@ -8,6 +8,8 @@ handler = LogHandler()
 log = logging.getLogger(__name__)
 log.addHandler(handler)
 log.setLevel(logging.INFO)
+# log.setLevel(logging.ERROR)
+
 
 # stores state data for in between calls
 state_data = {}
@@ -65,8 +67,17 @@ def Ljava_io_ByteArrayOutputStream_toByteArray(params: list, vm, v: list):
 def Ljava_lang_Object_hashCode(params: list, vm, v: list):
     vm.memory.last_return = string_hash_code(v[params[0]].decode("utf-8"))
 
+def Ljava_lang_String_hashCode(params: list, vm, v: list):
+    
+    h = 0
+    for c in v[params[0]]:
+        h = int((((31 * h + ord(c)) ^ 0x80000000) & 0xFFFFFFFF) - 0x80000000)
+    vm.memory.last_return = h
 
-def Ljava_lang_String_0init0(params: list, vm, v: list):
+
+def Ljava_lang_String_0init0(params: list, vm, v: list):        
+        # print(v[params[0]])
+        # print(v[params[1]])
         try:
             v[params[0]] = bytearray(v[params[1]]).decode("utf-8")
         except ValueError as ve:
@@ -77,7 +88,7 @@ def Ljava_lang_String_0init0(params: list, vm, v: list):
                     b += 0xFF + 1
                 ret.append(b)
             v[params[0]] = bytearray(ret).decode("utf-8", "ignore")
-
+        # print(v[params[0]])
         dump_string(f"{v[params[0]]}", vm);
 
 
@@ -129,9 +140,14 @@ def Ljava_lang_String_valueOf(params: list, vm, v: list):
     try:
         vm.memory.last_return = chr(v[params[0]])
     except:
-        vm.memory.last_return = bytes(bytearray(v[params[0]])).decode('ascii')
+        vm.memory.last_return = bytes(bytearray(v[params[0]][v[params[1]]:v[params[1]]+v[params[2]]])).decode('ascii')
         dump_string(vm.memory.last_return, vm)
 
+def Ljava_lang_Integer_valueOf(params: list, vm, v: list):
+    vm.memory.last_return = int(v[params[0]])
+
+def Ljava_lang_Integer_intValue(params: list, vm, v: list):
+    vm.memory.last_return = int(v[params[0]])
 
 
 
@@ -147,7 +163,19 @@ def Ljava_lang_String_getBytes(params: list, vm, v: list):
         vm.memory.last_return = list(v[params[0]])
 
 def Ljava_lang_String_toCharArray(params: list, vm, v:list):
-    vm.memory.last_return = list(v[params[0]])
+    temp = []
+    for c in v[params[0]]:
+        if type(c) is str:
+            temp.append(ord(c))
+        else:
+            temp.append(c)
+    
+    # print(temp)
+    # TMP = []
+    # for i in range(0, len(old), 2):
+    #     TMP.append(old[i] | (old[i+1] << 8))
+    # print(TMP)
+    vm.memory.last_return = temp
 
 def Ljava_lang_StringBuilder_0init0(params: list, vm, v: list):
     if len(params) > 1:
@@ -157,6 +185,7 @@ def Ljava_lang_StringBuilder_0init0(params: list, vm, v: list):
             v[params[0]] = v[params[1]]
     else:
         v[params[0]] = ''
+
     dump_string(f"{v[params[0]]}", vm)
 
 
@@ -169,6 +198,7 @@ def Ljava_lang_StringBuilder_append(params: list, vm, v: list):
             v[params[0]] = str(v[params[0]]) + v[params[1]].decode("utf-8")
         except AttributeError as ae:
             v[params[0]] = str(v[params[0]]) + str(v[params[1]])
+    vm.memory.last_return = v[params[0]]
 
 
 def Ljava_lang_StringBuilder_length(params: list, vm, v: list):
@@ -179,9 +209,10 @@ def Ljava_lang_StringBuilder_length(params: list, vm, v: list):
         vm.memory.last_return = 0
 
 def Ljava_lang_StringBuilder_toString(params: list, vm, v: list):
+    # print(v[params[0]])
     vm.memory.last_return = v[params[0]]
     dump_string(f"{v[params[0]]}", vm)
-    # log.info(f"String created: {v[params[0]]}")
+    log.info(f"String created: {v[params[0]]}")
 
 
 def Ljava_lang_StringBuffer_0init0(params: list, vm, v: list):
@@ -189,6 +220,7 @@ def Ljava_lang_StringBuffer_0init0(params: list, vm, v: list):
         v[params[0]] = ''.join(chr(i) for i in v[params[1]])
     if isinstance(v[params[1]], str):
         v[params[0]] = v[params[1]]
+
     dump_string(f"{v[params[0]]}", vm);
 
 def Ljava_lang_StringBuffer_toString(params: list, vm, v: list):
@@ -264,11 +296,14 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
         class_name, method_name, [str(v[param])[0:8] for param in params]))
 
     fqcn = class_name.replace('/', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
+    
 
     fp = globals().get(fqcn, None)
 
     if fp:
         try:
+            # print(fp)
+            # print("mock before", params, v, params[1], len(v))
             fp(params, vm, v)
         except Exception as ex:
             log.error("Could not execute mock for %s->%s(%s): %s" % (class_name, method_name, [str(v[param])[0:8] for param in params], ex))
@@ -285,5 +320,75 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
             return False
         if "Array" in method_name and "get" in method_name:
             vm.memory.last_return = []
-
+    # print("????????????????????")
     return True
+
+def Ljava_lang_Class_forName(params: list, vm, v:list):
+    vm.memory.last_return = v[params[0]]
+    
+def Ljava_lang_Class_getMethod(params: list, vm, v:list):
+    vm.memory.last_return = [v[params[0]], v[params[1]]]
+
+def Ljava_lang_StackTraceElement_getClassName(params: list, vm, v:list):
+    vm.memory.last_return = v[params[0]]["class_name"]
+
+def Ljava_lang_Thread_currentThread(params: list, vm, v:list):
+    vm.memory.last_return = "CURRENT_THREAD"
+
+def Ljava_lang_Thread_getStackTrace(params: list, vm, v:list):
+    if v[params[0]] == "CURRENT_THREAD":
+        st = [{"class_name": "java.lang.Thread", "method_name": "getStackTrace"}]
+        for m_id in vm.call_stack[::-1]:
+            st.append({"class_name": vm.dex.method_ids[m_id].class_name[1:-1].replace("/","."), "method_name": vm.dex.method_ids[m_id].method_name})
+    vm.memory.last_return = st
+
+def Ljava_lang_reflect_Method_invoke(params: list, vm, v:list):
+    t_class_name = v[params[0]][0].replace('.', '/')
+    t_method_name = v[params[0]][1]
+    full_name = f"L{t_class_name};->{t_method_name}"
+    for index, method in enumerate(vm.dex.method_ids):
+        if f"{method.class_name}->{method.method_name}" not in full_name:
+            continue
+
+        class_name: str = vm.dex.method_ids[index].class_name
+        method_name: str = vm.dex.method_ids[index].method_name
+        # print(f"\t{t_class_name}, {t_method_name}")
+
+        log.debug("Invoke Translating method: %s->%s with %s" % (
+            class_name, method_name, [str(v[param]) for param in params]))
+
+        fqcn = class_name.replace('/', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
+        fp = globals().get(fqcn, None)
+        
+        if fp:
+            try:
+                fp(params[1:], vm, v)
+            except Exception as ex:
+                log.error("Could not execute mock for %s->%s(%s): %s" % (class_name, method_name, [str(v[param])[0:8] for param in params], ex))
+            return False
+        elif class_name == "Landroid/view/Display;":
+            vm.memory.last_return = 0
+            return False
+        else:
+            if any([x in method_name for x in ["Int", "Long", "Float"]]) and "get" in method_name:
+                vm.memory.last_return = 0
+                return False
+            if "String" in method_name and "get" in method_name and len(method_name) > 9:
+                vm.memory.last_return = "None"
+                return False
+            if "Array" in method_name and "get" in method_name:
+                vm.memory.last_return = []
+
+    class_name = v[params[0]][0]
+    method_name = v[params[0]][1]
+    fqcn = "L"+class_name.replace('.', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
+    
+    fp = globals().get(fqcn, None)
+    if fp:
+        fp(params[1:], vm, v)
+    else:
+        print(f"NOT FOUND {full_name} ?????????????")
+
+def Ljava_lang_StackTraceElement_getMethodName(params: list, vm, v:list):
+    vm.memory.last_return = v[params[0]]["method_name"]
+    # print(vm.memory.last_return)
