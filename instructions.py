@@ -1007,11 +1007,13 @@ class UnOp(Instruction):
                 # this is dumb, why did I do this?
                 v[self.vA] = (v[self.vB] << 32) + v[self.vB + 1] & 0xFFFFFFFF
                 # pass
-            case 0x8d | 0x8e:
+            case 0x8d:
                 # assume bytes are identical to chars
                 v[self.vA] = (v[self.vB] & 0xFF)  # - 0xFF - 1
                 if v[self.vA] > 0x7F:
                     v[self.vA] = v[self.vA] - 0xFF - 1
+            case 0x8e:
+                v[self.vA] = (v[self.vB] & 0xFFFF)
             case 0x8f:
                 v[self.vA] = (v[self.vB] & 0xFFFF)  # - 0xFFFF - 1
                 if v[self.vA] > 0x7FFF:

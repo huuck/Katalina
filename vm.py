@@ -91,6 +91,8 @@ class VM:
         while not 0x0e <= current_instruction.opcode <= 0x11 and current_instruction.opcode != 0x27:
             # While instruction isn't a return instructions
             log.debug(f"@{hex(current_instruction.address)}")
+            if current_instruction.address == 0xae24:
+                pass
 
             current_instruction.print_instruction()
 
@@ -104,6 +106,8 @@ class VM:
                     params = [method.v[i] for i in instruction_return.parameters]
                     self.pc = super(type(current_instruction), current_instruction).execute(self.memory, method.v).ret
                     log.debug("Calling method: %s" % (fqn + str(params)))
+                    log.info("Calling method: %s" % (fqn + str(params)[:10]))
+
                     # log.info("(0x%x) Calling method: %s" % (self.pc, fqn + str(params)))
                     if not self.method_data.get(instruction_return.ret, None):
                         log.debug("Method ID %s not found, trying translation" % instruction_return.ret)

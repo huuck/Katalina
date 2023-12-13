@@ -14,6 +14,29 @@ if parse_version(kaitaistruct.__version__) < parse_version('0.9'):
 
 import vlq_base128_le
 
+def custom_decode_utf8(byte_str):
+    result = []
+    i = 0
+
+    while i < len(byte_str):
+        byte = byte_str[i]
+
+        if byte & 0b10000000 == 0:  # 1-byte character
+            result.append(chr(byte))
+            i += 1
+        elif byte & 0b11100000 == 0b11000000:  # 2-byte character
+            char_code = ((byte & 0b00011111) << 6) | (byte_str[i + 1] & 0b00111111)
+            result.append(chr(char_code))
+            i += 2
+        elif byte & 0b11110000 == 0b11100000:  # 3-byte character
+            char_code = ((byte & 0b00001111) << 12) | ((byte_str[i + 1] & 0b00111111) << 6) | (byte_str[i + 2] & 0b00111111)
+            result.append(chr(char_code))
+            i += 3
+        else:
+            # For simplicity, assume 4-byte characters are not used in this example
+            raise ValueError("Invalid UTF-8 encoding")
+
+    return ''.join(result)
 
 class Dex(KaitaiStruct):
     """Android OS applications executables are typically stored in its own
@@ -455,13 +478,49 @@ class Dex(KaitaiStruct):
 
             def _read(self):
                 self.utf16_size = vlq_base128_le.VlqBase128Le(self._io)
+                
                 byte = self._io.read_bytes(1)
                 self.raw_data = b''
-                #read until we hit a null byte, since the utf16 size does not corespond to the actual string size
+                
                 while byte != b'\x00':
                     self.raw_data += byte
                     byte = self._io.read_bytes(1)
-                self.data = self.raw_data.decode(u"utf-8", "replace")
+                
+                
+                try:
+                    self.data = self.raw_data.decode("utf-8")
+                except ValueError as ve:
+
+                    result = custom_decode_utf8(self.raw_data)
+                    ret = []
+                    for c in result:
+                        ret.append(ord(c))
+                    self.data = ret
+                self.raw_data = self.data
+
+            def custom_decode_utf8(this, byte_str):
+                result = []
+                i = 0
+
+                while i < len(byte_str):
+                    byte = byte_str[i]
+
+                    if byte & 0b10000000 == 0:  # 1-byte character
+                        result.append(chr(byte))
+                        i += 1
+                    elif byte & 0b11100000 == 0b11000000:  # 2-byte character
+                        char_code = ((byte & 0b00011111) << 6) | (byte_str[i + 1] & 0b00111111)
+                        result.append(chr(char_code))
+                        i += 2
+                    elif byte & 0b11110000 == 0b11100000:  # 3-byte character
+                        char_code = ((byte & 0b00001111) << 12) | ((byte_str[i + 1] & 0b00111111) << 6) | (byte_str[i + 2] & 0b00111111)
+                        result.append(chr(char_code))
+                        i += 3
+                    else:
+                        # For simplicity, assume 4-byte characters are not used in this example
+                        raise ValueError("Invalid UTF-8 encoding")
+
+                return ''.join(result)
 
         @property
         def value(self):
