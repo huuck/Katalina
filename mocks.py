@@ -1,6 +1,6 @@
 
 import logging
-
+import zlib
 from utils import *
 from base64 import b64decode, urlsafe_b64decode
 from helpers import string_hash_code
@@ -117,7 +117,6 @@ def Ljava_lang_String_0init0(params: list, vm, v: list):
     except ValueError as ve:
         # got negative bytes (which somehow work in java land), need to strip the sign
         ret = []
-        print(v[params[1]])
         
         for b in v[params[1]]:
             ret.append(b)  
@@ -163,20 +162,10 @@ def Ljava_lang_String_indexOf(params: list, vm, v: list):
         vm.memory.last_return = 0
 
 def Ljava_lang_String_valueOf(params: list, vm, v: list):
-    print(v[params[0]])
     out = ""
     for c in v[params[0]]:
         out += chr(c&0xff)
-    print(out[v[params[1]]:v[params[1]]+v[params[2]]])
     vm.memory.last_return = out[v[params[1]]:v[params[1]]+v[params[2]]]
-    # exit()
-    # try:
-    #     vm.memory.last_return = v[params[0]].decode("utf-16")
-    #     print(v[params[0]].decode("utf-16le"))
-    #     exit()
-    # except:
-    #     vm.memory.last_return = bytes(bytearray(v[params[0]][v[params[1]]:v[params[1]]+v[params[2]]])).decode('ascii')
-    #     dump_string(vm.memory.last_return, vm)
 
 def Ljava_lang_String_toLowerCase(params: list, vm, v: list):
     vm.memory.last_return = v[params[0]].lower()
@@ -417,6 +406,21 @@ def Ljava_util_zip_InflaterOutputStream_0init0(params:list, vm, v:list):
     # ret = v[params[0]]
     fileoutput = v[params[1]]
     v[params[0]] = fileoutput
+
+def Ljava_util_zip_InflaterOutputStream_close(params:list, vm, v:list):
+    fileobj = v[params[0]]
+    filename = fileobj.name
+    fileobj.close()
+    file_path = pathlib.Path(filename)
+    raw_data = file_path.read_bytes()
+    raw_data = zlib.decompress(raw_data)
+    file_path.write_bytes(raw_data)
+    v[params[0]] = file_path.open(mode = "rb")
+    
+
+def Ljava_io_InputStream_close(params:list, vm, v:list):
+    fileobj = v[params[0]]
+    fileobj.close()
     
 def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
     class_name: str = vm.dex.method_ids[method_idx].class_name
