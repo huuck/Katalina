@@ -134,68 +134,7 @@ def Ljava_lang_String_indexOf(params: list, vm, v: list):
         vm.memory.last_return = 0
 
 
-def _method_descriptor(vm, method_idx: int) -> str:
-    """"(Ljava/lang/String;J)V"-style descriptor of the invoked method."""
-    proto = vm.dex.method_ids[method_idx].proto_id
-    args = "".join(p.value for p in proto.params_types.list) if proto.params_types else ""
-    return "(" + args + ")" + proto.return_type
-
-
-# try_to_mock_method sets vm.memory.mock_descriptor via method_descriptor;
-# expose it under the name that call site uses.
-method_descriptor = _method_descriptor
-
-
-def _descriptor_args(descriptor: str) -> list:
-    """Split the argument part of a descriptor into single type descriptors."""
-    if "(" not in descriptor or ")" not in descriptor:
-        return []
-    body = descriptor[descriptor.index("(") + 1:descriptor.index(")")]
-    out, i = [], 0
-    while i < len(body):
-        start = i
-        while body[i] == "[":
-            i += 1
-        if body[i] == "L":
-            i = body.index(";", i)
-        i += 1
-        out.append(body[start:i])
-    return out
-
-
-def _signed(value: int, bits: int) -> int:
-    value &= (1 << bits) - 1
-    return value - (1 << bits) if value >> (bits - 1) else value
-
-
 def Ljava_lang_String_valueOf(params: list, vm, v: list):
-    # String.valueOf is overloaded on (C)(I)(J)(Z)(F)(D)([C)([CII)(Ljava/lang/Object;).
-    # Mocking every overload as chr() alone turns valueOf(int) into a character,
-    # valueOf(boolean) into a control char, and -- worst -- valueOf(long) into a
-    # random CJK character, because a long occupies TWO registers (high, low) and
-    # chr(high_word) was returned. Dispatch on the invoked descriptor instead.
-    arg_types = _descriptor_args(getattr(vm.memory, "mock_descriptor", ""))
-    kind = arg_types[0] if len(arg_types) == 1 else None
-
-    if kind == "C":
-        vm.memory.last_return = chr(v[params[0]])
-        return
-    if kind in ("I", "S", "B"):
-        vm.memory.last_return = str(_signed(int(v[params[0]]), 32))
-        return
-    if kind == "Z":
-        vm.memory.last_return = "true" if v[params[0]] else "false"
-        return
-    if kind in ("J", "D") and len(params) >= 2:
-        wide = (int(v[params[0]]) << 32) + int(v[params[1]])
-        vm.memory.last_return = str(_signed(wide, 64))
-        return
-    if kind == "[C" and len(params) == 1:
-        vm.memory.last_return = "".join(chr(c) for c in v[params[0]])
-        dump_string(vm.memory.last_return, vm)
-        return
-
-    # Fallback: the original behaviour (char, or a char[] slice).
     try:
         vm.memory.last_return = chr(v[params[0]])
     except:
@@ -355,11 +294,7 @@ def try_to_mock_method(method_idx: int, params: list, vm, v) -> bool:
         class_name, method_name, [str(v[param])[0:8] for param in params]))
 
     fqcn = class_name.replace('/', '_').replace(';', '') + '_' + method_name.replace('<', '0').replace('>', '0')
-
-    # Overloaded java.* methods (String.valueOf, ...) cannot be mocked from the
-    # name alone -- a char and an int are both plain ints in a register. Give
-    # the mock the invoked method's descriptor so it can tell them apart.
-    vm.memory.mock_descriptor = method_descriptor(vm, method_idx)
+    
 
     fp = globals().get(fqcn, None)
 
